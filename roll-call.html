@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roll Call — Macroeconomics Cold Call</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #16261f;
+    --bg-2: #1e3129;
+    --bg-3: #22392f;
+    --chalk: #eef2ea;
+    --chalk-dim: #9fbaab;
+    --chalk-faint: #6e8c7d;
+    --gold: #e3b94f;
+    --gold-dim: #a98a3f;
+    --rust: #c06846;
+    --line: rgba(238,242,234,0.14);
+    --line-strong: rgba(238,242,234,0.28);
+    --radius: 10px;
+    --shadow: 0 14px 34px rgba(0,0,0,0.35);
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin:0; padding:0; height:100%;
+    background:
+      radial-gradient(ellipse at 15% 0%, rgba(255,255,255,0.035), transparent 45%),
+      radial-gradient(ellipse at 85% 100%, rgba(255,255,255,0.03), transparent 50%),
+      var(--bg);
+    color: var(--chalk);
+    font-family: 'Space Grotesk', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* chalkboard texture */
+  body::before{
+    content:"";
+    position: fixed; inset:0;
+    background-image:
+      radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 3px 3px;
+    pointer-events: none;
+    opacity: 0.5;
+    z-index: 0;
+  }
+
+  .wrap{
+    position: relative;
+    z-index: 1;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 28px 24px 60px;
+  }
+
+  header{
+    display:flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 18px;
+    margin-bottom: 26px;
+  }
+
+  .title-block h1{
+    font-family: 'Caveat', cursive;
+    font-weight: 700;
+    font-size: 3.1rem;
+    line-height: 1;
+    margin: 0 0 4px 0;
+    color: var(--chalk);
+    letter-spacing: 0.5px;
+  }
+
+  .title-block p{
+    margin:0;
+    color: var(--chalk-dim);
+    font-size: 0.92rem;
+    letter-spacing: 0.02em;
+  }
+
+  .title-block p .divider{ color: var(--chalk-faint); margin: 0 8px; }
+
+  .controls{
+    display:flex;
+    gap: 10px;
+    align-items:center;
+    flex-wrap: wrap;
+  }
+
+  .counter{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--gold);
+    background: rgba(227,185,79,0.08);
+    border: 1px solid rgba(227,185,79,0.35);
+    padding: 7px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  button{
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 0.88rem;
+    border-radius: 8px;
+    padding: 10px 16px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg-3);
+    color: var(--chalk);
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+  button:hover{ background: #2a463a; border-color: var(--gold-dim); }
+  button:active{ transform: translateY(1px) scale(0.98); }
+  button:focus-visible{ outline: 2px solid var(--gold); outline-offset: 2px; }
+  button:disabled{ opacity: 0.4; cursor: not-allowed; }
+
+  button.primary{
+    background: var(--gold);
+    color: #22261a;
+    border-color: var(--gold);
+  }
+  button.primary:hover{ background: #edc667; }
+
+  button.ghost{ background: transparent; }
+  button.ghost:hover{ background: rgba(238,242,234,0.06); }
+
+  main{
+    display: grid;
+    grid-template-columns: minmax(260px, 34%) 1fr;
+    gap: 22px;
+    align-items: start;
+  }
+
+  @media (max-width: 820px){
+    main{ grid-template-columns: 1fr; }
+  }
+
+  .panel{
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .panel-head{
+    display:flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .panel-head h2{
+    font-family: 'Caveat', cursive;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin:0;
+    color: var(--chalk);
+  }
+
+  .panel-head .hint{
+    font-size: 0.72rem;
+    color: var(--chalk-faint);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* Roster */
+  #roster{
+    list-style: none;
+    margin:0; padding: 10px;
+    max-height: 560px;
+    overflow-y: auto;
+  }
+
+  #roster li{
+    position: relative;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 11px 12px;
+    margin-bottom: 4px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  #roster li .name{
+    font-size: 0.94rem;
+    color: var(--chalk-dim);
+  }
+
+  #roster li .tally{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--chalk-faint);
+    min-width: 18px;
+    text-align: right;
+  }
+
+  #roster li.cycling{
+    background: rgba(238,242,234,0.06);
+  }
+  #roster li.cycling .name{ color: var(--chalk); }
+
+  #roster li.selected{
+    background: rgba(227,185,79,0.12);
+    border-color: rgba(227,185,79,0.55);
+  }
+  #roster li.selected .name{
+    color: var(--gold);
+    font-weight: 600;
+  }
+  #roster li.selected .tally{ color: var(--gold-dim); }
+
+  .chalk-ring{
+    position:absolute;
+    left: -6px; top: -6px; right: -6px; bottom: -6px;
+    pointer-events:none;
+  }
+  .chalk-ring path{
+    fill:none;
+    stroke: var(--gold);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 340;
+    stroke-dashoffset: 340;
+  }
+  #roster li.selected .chalk-ring path{
+    animation: draw-ring 0.5s ease-out forwards 0.05s;
+  }
+  @keyframes draw-ring{
+    to{ stroke-dashoffset: 0; }
+  }
+
+  /* Definition stage */
+  .stage{
+    padding: 26px 26px 8px;
+    min-height: 190px;
+    display:flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .stage .eyebrow{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--rust);
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+  }
+
+  .stage .term{
+    font-family: 'Caveat', cursive;
+    font-weight: 700;
+    font-size: 2.5rem;
+    line-height: 1.15;
+    color: var(--chalk);
+    margin: 0 0 14px 0;
+    min-height: 1.15em;
+  }
+
+  .stage .called-line{
+    font-size: 0.95rem;
+    color: var(--chalk-dim);
+    margin: 0;
+  }
+  .stage .called-line strong{
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  .stage .empty{
+    color: var(--chalk-faint);
+    font-size: 1rem;
+  }
+
+  .stage-actions{
+    display:flex;
+    gap: 10px;
+    justify-content:center;
+    padding: 16px 26px 22px;
+  }
+
+  /* Ledger */
+  #ledger{
+    list-style: none;
+    margin:0; padding: 8px 10px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  #ledger li{
+    display:flex;
+    align-items:baseline;
+    gap: 10px;
+    padding: 7px 8px;
+    border-radius: 6px;
+    font-size: 0.86rem;
+    color: var(--chalk-dim);
+  }
+
+  #ledger li .num{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--chalk-faint);
+    min-width: 20px;
+  }
+
+  #ledger li.done{
+    color: var(--chalk-faint);
+    text-decoration: line-through;
+    text-decoration-color: var(--rust);
+  }
+
+  #ledger li.current{
+    background: rgba(227,185,79,0.1);
+    color: var(--gold);
+    font-weight: 600;
+  }
+  #ledger li.current .num{ color: var(--gold-dim); }
+
+  footer{
+    margin-top: 20px;
+    text-align:center;
+    color: var(--chalk-faint);
+    font-size: 0.78rem;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    #roster li.selected .chalk-ring path{ animation: none; stroke-dashoffset: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="title-block">
+      <h1>Roll Call</h1>
+      <p>Macroeconomics — cold call roster<span class="divider">&middot;</span>16 students, 30 terms</p>
+    </div>
+    <div class="controls">
+      <span class="counter" id="counter">Not started — 30 terms</span>
+      <button class="ghost" id="resetBtn" type="button">Reset</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel" id="rosterPanel">
+      <div class="panel-head">
+        <h2>Roster</h2>
+        <span class="hint" id="rosterHint">tap Next Term to begin</span>
+      </div>
+      <ul id="roster"></ul>
+    </section>
+
+    <section class="panel">
+      <div class="stage" id="stage">
+        <p class="empty">Press <strong>Next Term</strong> to draw the first definition and call a student.</p>
+      </div>
+      <div class="stage-actions">
+        <button class="primary" id="nextBtn" type="button">Next Term</button>
+        <button class="ghost" id="reshuffleBtn" type="button" disabled>Reshuffle student</button>
+      </div>
+      <div class="panel-head">
+        <h2>Term ledger</h2>
+        <span class="hint" id="ledgerHint">0 / 30 covered</span>
+      </div>
+      <ul id="ledger"></ul>
+    </section>
+  </main>
+
+  <footer>Reshuffle redraws a student for the current term without advancing — use it if the called student is absent.</footer>
+</div>
+
+<script>
+(function(){
+  const students = [
+    "Md. Mahamudul Hasan Ontor",
+    "Mayesha Jashim Orpa",
+    "Md. Suhag Mia",
+    "Rohan Sheik",
+    "Maruf Hasan Raffi",
+    "Samia Akter",
+    "Tahmid Hasan",
+    "Ratna Akter",
+    "Ibrahim Hasan",
+    "Mariyam Jafrin",
+    "Karima Akter",
+    "Sumaya Akter Sathi",
+    "Sumiya Ahmed Toya",
+    "Md. Nazmul Hossain Nadim",
+    "Maruf Ahmed Bhuiyan",
+    "Fahim Ahmed Ramim"
+  ];
+
+  const definitions = [
+    "Keynesian Liquidity Preference",
+    "Baumol's Inventory Model",
+    "Reserve-Deposit Ratio",
+    "Fisherian Quantity Theory",
+    "Currency-Deposit Ratio",
+    "Cambridge Cash-Balance Approach",
+    "Flexible Accelerator",
+    "The (S, s) Rule",
+    "Marginal Product of Capital",
+    "Tobin's q Ratio",
+    "The Simple Accelerator",
+    "Cost of Capital",
+    "Convergence",
+    "Warranted Growth Rate",
+    "Steady State",
+    "Balanced Growth Path",
+    "Harrod-Domar Model",
+    "Capital/Financial Account",
+    "Nominal Exchange Rate",
+    "Current Account",
+    "Balance of Payments Identity",
+    "Real Exchange Rate",
+    "The Lucas Critique",
+    "Decision Lag",
+    "Non-activism",
+    "Outside Lag",
+    "Multiplier Uncertainty",
+    "The Brainard Conservatism Principle",
+    "Inside Lag",
+    "Recognition Lag"
+  ];
+
+  const rosterEl = document.getElementById('roster');
+  const ledgerEl = document.getElementById('ledger');
+  const stageEl = document.getElementById('stage');
+  const counterEl = document.getElementById('counter');
+  const rosterHintEl = document.getElementById('rosterHint');
+  const ledgerHintEl = document.getElementById('ledgerHint');
+  const nextBtn = document.getElementById('nextBtn');
+  const reshuffleBtn = document.getElementById('reshuffleBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const CHALK_RING_SVG = '<svg class="chalk-ring" viewBox="0 0 100 44" preserveAspectRatio="none"><path d="M6,22 C6,9 22,4 50,4 C80,4 94,10 94,22 C94,35 78,40 50,40 C20,40 6,34 6,22 Z"/></svg>';
+
+  const tallies = new Array(students.length).fill(0);
+  let currentIndex = -1;      // definition index, -1 = not started
+  let currentStudent = -1;    // student index for current term
+  let cycleTimer = null;
+
+  function buildRoster(){
+    rosterEl.innerHTML = '';
+    students.forEach((name, i) => {
+      const li = document.createElement('li');
+      li.dataset.idx = i;
+      li.innerHTML = '<span class="name">' + name + '</span><span class="tally" id="tally-' + i + '">0</span>' + CHALK_RING_SVG;
+      rosterEl.appendChild(li);
+    });
+  }
+
+  function buildLedger(){
+    ledgerEl.innerHTML = '';
+    definitions.forEach((term, i) => {
+      const li = document.createElement('li');
+      li.dataset.idx = i;
+      li.innerHTML = '<span class="num">' + String(i+1).padStart(2,'0') + '</span><span>' + term + '</span>';
+      ledgerEl.appendChild(li);
+    });
+  }
+
+  function renderLedgerState(){
+    Array.from(ledgerEl.children).forEach((li, i) => {
+      li.classList.toggle('done', i < currentIndex);
+      li.classList.toggle('current', i === currentIndex);
+    });
+    ledgerHintEl.textContent = Math.max(currentIndex, 0) + (currentIndex >= 0 ? (currentIndex === definitions.length - 1 ? '' : '') : '') ;
+    const covered = currentIndex < 0 ? 0 : (currentIndex + (currentIndex === definitions.length - 1 ? 1 : 0));
+    ledgerHintEl.textContent = covered + ' / ' + definitions.length + ' covered';
+  }
+
+  function renderStage(){
+    if (currentIndex < 0){
+      stageEl.innerHTML = '<p class="empty">Press <strong>Next Term</strong> to draw the first definition and call a student.</p>';
+      counterEl.textContent = 'Not started — ' + definitions.length + ' terms';
+      return;
+    }
+    const term = definitions[currentIndex];
+    stageEl.innerHTML =
+      '<div class="eyebrow">TERM ' + String(currentIndex+1).padStart(2,'0') + ' OF ' + definitions.length + '</div>' +
+      '<p class="term">' + term + '</p>' +
+      '<p class="called-line" id="calledLine">Drawing a student&hellip;</p>';
+    counterEl.textContent = 'Term ' + (currentIndex+1) + ' of ' + definitions.length;
+  }
+
+  function setCalledLine(){
+    const line = document.getElementById('calledLine');
+    if (line && currentStudent >= 0){
+      line.innerHTML = 'Called on <strong>' + students[currentStudent] + '</strong>';
+    }
+  }
+
+  function clearRosterMarks(){
+    Array.from(rosterEl.children).forEach(li => {
+      li.classList.remove('cycling', 'selected');
+    });
+  }
+
+  function pickStudent(){
+    clearTimeout(cycleTimer);
+    clearRosterMarks();
+    reshuffleBtn.disabled = true;
+    nextBtn.disabled = true;
+
+    const finalPick = Math.floor(Math.random() * students.length);
+
+    if (reduceMotion){
+      landOnStudent(finalPick);
+      return;
+    }
+
+    let steps = 0;
+    const maxSteps = 14;
+    const rosterItems = Array.from(rosterEl.children);
+
+    function tick(){
+      rosterItems.forEach(li => li.classList.remove('cycling'));
+      const idx = Math.floor(Math.random() * students.length);
+      rosterItems[idx].classList.add('cycling');
+      steps++;
+      if (steps >= maxSteps){
+        landOnStudent(finalPick);
+      } else {
+        const delay = 45 + steps * 12; // decelerate
+        cycleTimer = setTimeout(tick, delay);
+      }
+    }
+    tick();
+  }
+
+  function landOnStudent(idx){
+    clearRosterMarks();
+    currentStudent = idx;
+    tallies[idx]++;
+    document.getElementById('tally-' + idx).textContent = tallies[idx];
+    const li = rosterEl.children[idx];
+    li.classList.add('selected');
+    li.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+    setCalledLine();
+    nextBtn.disabled = (currentIndex >= definitions.length - 1);
+    reshuffleBtn.disabled = false;
+    rosterHintEl.textContent = tallies.reduce((a,b)=>a+b,0) + ' calls made';
+  }
+
+  nextBtn.addEventListener('click', () => {
+    if (currentIndex >= definitions.length - 1) return;
+    currentIndex++;
+    renderStage();
+    renderLedgerState();
+    pickStudent();
+  });
+
+  reshuffleBtn.addEventListener('click', () => {
+    if (currentIndex < 0) return;
+    pickStudent();
+  });
+
+  resetBtn.addEventListener('click', () => {
+    if (!confirm('Reset the roll call? This clears the ledger and tally marks.')) return;
+    clearTimeout(cycleTimer);
+    currentIndex = -1;
+    currentStudent = -1;
+    for (let i=0;i<tallies.length;i++){ tallies[i] = 0; }
+    buildRoster();
+    renderStage();
+    renderLedgerState();
+    rosterHintEl.textContent = 'tap Next Term to begin';
+    nextBtn.disabled = false;
+    reshuffleBtn.disabled = true;
+  });
+
+  buildRoster();
+  buildLedger();
+  renderStage();
+  renderLedgerState();
+})();
+</script>
+
+</body>
+</html>
