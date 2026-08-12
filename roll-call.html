@@ -491,6 +491,7 @@
   let currentIndex = -1;      // definition index, -1 = not started
   let currentStudentName = null;
   let cycleTimer = null;
+  let termAnswers = [];
 
   function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
@@ -529,20 +530,27 @@
   }
 
   function buildLedger(){
-    ledgerEl.innerHTML = '';
-    shuffledDefinitions.forEach((term, i) => {
-      const li = document.createElement('li');
-      li.dataset.idx = i;
-      li.innerHTML = '<span class="num">' + String(i+1).padStart(2,'0') + '</span><span>' + term + '</span>';
-      ledgerEl.appendChild(li);
-    });
+    renderLedgerState();
   }
 
   function renderLedgerState(){
-    Array.from(ledgerEl.children).forEach((li, i) => {
-      li.classList.toggle('done', i < currentIndex);
-      li.classList.toggle('current', i === currentIndex);
-    });
+    ledgerEl.innerHTML = '';
+    if (currentIndex >= 0) {
+      for (let i = 0; i <= currentIndex; i++) {
+        const term = shuffledDefinitions[i];
+        const answerer = termAnswers[i] || 'Drawing...';
+        const li = document.createElement('li');
+        li.dataset.idx = i;
+        if (i < currentIndex) {
+          li.classList.add('done');
+        } else {
+          li.classList.add('current');
+        }
+        li.innerHTML = '<span class="num">' + String(i+1).padStart(2,'0') + '</span>' +
+                       '<span>' + term + ' <span style="color: var(--gold-dim); font-size: 0.78rem; font-family: \'IBM Plex Mono\', monospace; margin-left: 8px;">&mdash; ' + answerer + '</span></span>';
+        ledgerEl.appendChild(li);
+      }
+    }
     const covered = currentIndex < 0 ? 0 : (currentIndex + (currentIndex === shuffledDefinitions.length - 1 ? 1 : 0));
     ledgerHintEl.textContent = covered + ' / ' + shuffledDefinitions.length + ' covered';
   }
@@ -585,6 +593,9 @@
       return;
     }
 
+    termAnswers[currentIndex] = null;
+    renderLedgerState();
+
     const targetStudentName = assignedStudentsSequence[currentIndex];
     const finalPick = activeStudents.indexOf(targetStudentName);
 
@@ -625,6 +636,7 @@
     clearRosterMarks();
     currentStudentName = activeStudents[idx];
     studentTallies[currentStudentName] = (studentTallies[currentStudentName] || 0) + 1;
+    termAnswers[currentIndex] = currentStudentName;
 
     activeStudents.forEach((name, i) => {
       const tallyEl = document.getElementById('tally-' + i);
@@ -644,6 +656,7 @@
 
     const totalCalls = Object.values(studentTallies).reduce((a, b) => a + b, 0);
     rosterHintEl.textContent = totalCalls + ' calls made';
+    renderLedgerState();
   }
 
   nextBtn.addEventListener('click', () => {
@@ -696,6 +709,7 @@
     clearTimeout(cycleTimer);
     currentIndex = -1;
     currentStudentName = null;
+    termAnswers = [];
 
     studentTallies = {};
     activeStudents.forEach(name => {
@@ -743,6 +757,7 @@
     studentTallies[name] = 0;
   });
 
+  termAnswers = [];
   generateAssignedSequence();
   buildRoster();
   buildLedger();
