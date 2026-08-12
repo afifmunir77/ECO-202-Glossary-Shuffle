@@ -87,6 +87,30 @@
 
   .title-block p .divider{ color: var(--chalk-faint); margin: 0 8px; }
 
+  /* Remove student button styling */
+  .remove-btn {
+    background: transparent;
+    border: none;
+    color: var(--rust);
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+    opacity: 0.4;
+    font-weight: bold;
+  }
+  #roster li:hover .remove-btn {
+    opacity: 1;
+  }
+  .remove-btn:hover {
+    color: #ff8555 !important;
+    transform: scale(1.25);
+  }
+
   .controls{
     display:flex;
     gap: 10px;
@@ -224,16 +248,23 @@
 
   .chalk-ring{
     position:absolute;
-    left: -6px; top: -6px; right: -6px; bottom: -6px;
+    left: -6px; top: -6px;
+    width: calc(100% + 12px);
+    height: calc(100% + 12px);
     pointer-events:none;
+    box-sizing: border-box;
+    display: none;
   }
   .chalk-ring path{
     fill:none;
     stroke: var(--gold);
     stroke-width: 2;
     stroke-linecap: round;
-    stroke-dasharray: 340;
-    stroke-dashoffset: 340;
+    stroke-dasharray: 200;
+    stroke-dashoffset: 200;
+  }
+  #roster li.selected .chalk-ring{
+    display: block;
   }
   #roster li.selected .chalk-ring path{
     animation: draw-ring 0.5s ease-out forwards 0.05s;
@@ -349,7 +380,7 @@
   <header>
     <div class="title-block">
       <h1>Roll Call</h1>
-      <p>Macroeconomics — cold call roster<span class="divider">&middot;</span>16 students, 30 terms</p>
+      <p>Macroeconomics — cold call roster<span class="divider">&middot;</span><span id="studentCount">16</span> students, 30 terms</p>
     </div>
     <div class="controls">
       <span class="counter" id="counter">Not started — 30 terms</span>
@@ -387,7 +418,7 @@
 
 <script>
 (function(){
-  const students = [
+  const originalStudents = [
     "Md. Mahamudul Hasan Ontor",
     "Mayesha Jashim Orpa",
     "Md. Suhag Mia",
@@ -451,26 +482,55 @@
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const CHALK_RING_SVG = '<svg class="chalk-ring" viewBox="0 0 100 44" preserveAspectRatio="none"><path d="M6,22 C6,9 22,4 50,4 C80,4 94,10 94,22 C94,35 78,40 50,40 C20,40 6,34 6,22 Z"/></svg>';
+  const CHALK_RING_SVG = '<svg class="chalk-ring" viewBox="0 0 100 44" preserveAspectRatio="none"><path pathLength="200" d="M6,22 C6,9 22,4 50,4 C80,4 94,10 94,22 C94,35 78,40 50,40 C20,40 6,34 6,22 Z"/></svg>';
 
-  const tallies = new Array(students.length).fill(0);
+  let activeStudents = [...originalStudents];
+  let shuffledDefinitions = [];
+  let assignedStudentsSequence = [];
+  let studentTallies = {};
   let currentIndex = -1;      // definition index, -1 = not started
-  let currentStudent = -1;    // student index for current term
+  let currentStudentName = null;
   let cycleTimer = null;
+
+  function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  function generateAssignedSequence() {
+    assignedStudentsSequence = [];
+    if (activeStudents.length === 0) return;
+    while (assignedStudentsSequence.length < shuffledDefinitions.length) {
+      let block = [...activeStudents];
+      shuffle(block);
+      assignedStudentsSequence = assignedStudentsSequence.concat(block);
+    }
+    assignedStudentsSequence = assignedStudentsSequence.slice(0, shuffledDefinitions.length);
+  }
 
   function buildRoster(){
     rosterEl.innerHTML = '';
-    students.forEach((name, i) => {
+    document.getElementById('studentCount').textContent = activeStudents.length;
+    activeStudents.forEach((name, i) => {
       const li = document.createElement('li');
       li.dataset.idx = i;
-      li.innerHTML = '<span class="name">' + name + '</span><span class="tally" id="tally-' + i + '">0</span>' + CHALK_RING_SVG;
+      li.innerHTML =
+        '<span class="name">' + name + '</span>' +
+        '<div style="display:flex; align-items:center; gap:10px; z-index: 2;">' +
+          '<span class="tally" id="tally-' + i + '">' + (studentTallies[name] || 0) + '</span>' +
+          '<button class="remove-btn" data-idx="' + i + '" type="button" title="Remove student">&times;</button>' +
+        '</div>' +
+        CHALK_RING_SVG;
       rosterEl.appendChild(li);
     });
   }
 
   function buildLedger(){
     ledgerEl.innerHTML = '';
-    definitions.forEach((term, i) => {
+    shuffledDefinitions.forEach((term, i) => {
       const li = document.createElement('li');
       li.dataset.idx = i;
       li.innerHTML = '<span class="num">' + String(i+1).padStart(2,'0') + '</span><span>' + term + '</span>';
@@ -483,29 +543,28 @@
       li.classList.toggle('done', i < currentIndex);
       li.classList.toggle('current', i === currentIndex);
     });
-    ledgerHintEl.textContent = Math.max(currentIndex, 0) + (currentIndex >= 0 ? (currentIndex === definitions.length - 1 ? '' : '') : '') ;
-    const covered = currentIndex < 0 ? 0 : (currentIndex + (currentIndex === definitions.length - 1 ? 1 : 0));
-    ledgerHintEl.textContent = covered + ' / ' + definitions.length + ' covered';
+    const covered = currentIndex < 0 ? 0 : (currentIndex + (currentIndex === shuffledDefinitions.length - 1 ? 1 : 0));
+    ledgerHintEl.textContent = covered + ' / ' + shuffledDefinitions.length + ' covered';
   }
 
   function renderStage(){
     if (currentIndex < 0){
       stageEl.innerHTML = '<p class="empty">Press <strong>Next Term</strong> to draw the first definition and call a student.</p>';
-      counterEl.textContent = 'Not started — ' + definitions.length + ' terms';
+      counterEl.textContent = 'Not started — ' + shuffledDefinitions.length + ' terms';
       return;
     }
-    const term = definitions[currentIndex];
+    const term = shuffledDefinitions[currentIndex];
     stageEl.innerHTML =
-      '<div class="eyebrow">TERM ' + String(currentIndex+1).padStart(2,'0') + ' OF ' + definitions.length + '</div>' +
+      '<div class="eyebrow">TERM ' + String(currentIndex+1).padStart(2,'0') + ' OF ' + shuffledDefinitions.length + '</div>' +
       '<p class="term">' + term + '</p>' +
       '<p class="called-line" id="calledLine">Drawing a student&hellip;</p>';
-    counterEl.textContent = 'Term ' + (currentIndex+1) + ' of ' + definitions.length;
+    counterEl.textContent = 'Term ' + (currentIndex+1) + ' of ' + shuffledDefinitions.length;
   }
 
   function setCalledLine(){
     const line = document.getElementById('calledLine');
-    if (line && currentStudent >= 0){
-      line.innerHTML = 'Called on <strong>' + students[currentStudent] + '</strong>';
+    if (line && currentStudentName){
+      line.innerHTML = 'Called on <strong>' + currentStudentName + '</strong>';
     }
   }
 
@@ -521,7 +580,20 @@
     reshuffleBtn.disabled = true;
     nextBtn.disabled = true;
 
-    const finalPick = Math.floor(Math.random() * students.length);
+    if (activeStudents.length === 0) {
+      alert("No active students left in the roster.");
+      return;
+    }
+
+    const targetStudentName = assignedStudentsSequence[currentIndex];
+    const finalPick = activeStudents.indexOf(targetStudentName);
+
+    if (finalPick === -1) {
+      // Fallback if student somehow not in active list anymore
+      const fallbackPick = Math.floor(Math.random() * activeStudents.length);
+      landOnStudent(fallbackPick);
+      return;
+    }
 
     if (reduceMotion){
       landOnStudent(finalPick);
@@ -534,8 +606,10 @@
 
     function tick(){
       rosterItems.forEach(li => li.classList.remove('cycling'));
-      const idx = Math.floor(Math.random() * students.length);
-      rosterItems[idx].classList.add('cycling');
+      const idx = Math.floor(Math.random() * activeStudents.length);
+      if (rosterItems[idx]) {
+        rosterItems[idx].classList.add('cycling');
+      }
       steps++;
       if (steps >= maxSteps){
         landOnStudent(finalPick);
@@ -549,20 +623,31 @@
 
   function landOnStudent(idx){
     clearRosterMarks();
-    currentStudent = idx;
-    tallies[idx]++;
-    document.getElementById('tally-' + idx).textContent = tallies[idx];
+    currentStudentName = activeStudents[idx];
+    studentTallies[currentStudentName] = (studentTallies[currentStudentName] || 0) + 1;
+
+    activeStudents.forEach((name, i) => {
+      const tallyEl = document.getElementById('tally-' + i);
+      if (tallyEl) {
+        tallyEl.textContent = studentTallies[name] || 0;
+      }
+    });
+
     const li = rosterEl.children[idx];
-    li.classList.add('selected');
-    li.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+    if (li) {
+      li.classList.add('selected');
+      li.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+    }
     setCalledLine();
-    nextBtn.disabled = (currentIndex >= definitions.length - 1);
+    nextBtn.disabled = (currentIndex >= shuffledDefinitions.length - 1);
     reshuffleBtn.disabled = false;
-    rosterHintEl.textContent = tallies.reduce((a,b)=>a+b,0) + ' calls made';
+
+    const totalCalls = Object.values(studentTallies).reduce((a, b) => a + b, 0);
+    rosterHintEl.textContent = totalCalls + ' calls made';
   }
 
   nextBtn.addEventListener('click', () => {
-    if (currentIndex >= definitions.length - 1) return;
+    if (currentIndex >= shuffledDefinitions.length - 1) return;
     currentIndex++;
     renderStage();
     renderLedgerState();
@@ -571,23 +656,94 @@
 
   reshuffleBtn.addEventListener('click', () => {
     if (currentIndex < 0) return;
+
+    if (currentStudentName) {
+      studentTallies[currentStudentName] = Math.max(0, (studentTallies[currentStudentName] || 1) - 1);
+    }
+
+    const currentTargetName = assignedStudentsSequence[currentIndex];
+    let swapped = false;
+
+    let candidates = [];
+    for (let j = currentIndex + 1; j < shuffledDefinitions.length; j++) {
+      if (assignedStudentsSequence[j] !== currentTargetName) {
+        candidates.push(j);
+      }
+    }
+
+    if (candidates.length > 0) {
+      const swapIndex = candidates[Math.floor(Math.random() * candidates.length)];
+      const temp = assignedStudentsSequence[currentIndex];
+      assignedStudentsSequence[currentIndex] = assignedStudentsSequence[swapIndex];
+      assignedStudentsSequence[swapIndex] = temp;
+      swapped = true;
+    } else {
+      const otherStudents = activeStudents.filter(name => name !== currentTargetName);
+      if (otherStudents.length > 0) {
+        assignedStudentsSequence[currentIndex] = otherStudents[Math.floor(Math.random() * otherStudents.length)];
+      }
+    }
+
     pickStudent();
   });
 
   resetBtn.addEventListener('click', () => {
     if (!confirm('Reset the roll call? This clears the ledger and tally marks.')) return;
+    resetGameNoConfirm();
+  });
+
+  function resetGameNoConfirm() {
     clearTimeout(cycleTimer);
     currentIndex = -1;
-    currentStudent = -1;
-    for (let i=0;i<tallies.length;i++){ tallies[i] = 0; }
+    currentStudentName = null;
+
+    studentTallies = {};
+    activeStudents.forEach(name => {
+      studentTallies[name] = 0;
+    });
+
+    shuffledDefinitions = [...definitions];
+    for (let i = shuffledDefinitions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledDefinitions[i], shuffledDefinitions[j]] = [shuffledDefinitions[j], shuffledDefinitions[i]];
+    }
+
+    generateAssignedSequence();
     buildRoster();
+    buildLedger();
     renderStage();
     renderLedgerState();
+
     rosterHintEl.textContent = 'tap Next Term to begin';
     nextBtn.disabled = false;
     reshuffleBtn.disabled = true;
+  }
+
+  rosterEl.addEventListener('click', (e) => {
+    const removeBtn = e.target.closest('.remove-btn');
+    if (removeBtn) {
+      e.stopPropagation();
+      const idx = parseInt(removeBtn.dataset.idx, 10);
+      const name = activeStudents[idx];
+      if (confirm('Remove ' + name + ' from the roster? This will reset the roll call.')) {
+        activeStudents.splice(idx, 1);
+        resetGameNoConfirm();
+      }
+    }
   });
 
+  // Initial Setup
+  shuffledDefinitions = [...definitions];
+  for (let i = shuffledDefinitions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffledDefinitions[i], shuffledDefinitions[j]] = [shuffledDefinitions[j], shuffledDefinitions[i]];
+  }
+
+  activeStudents.forEach(name => {
+    studentTallies[name] = 0;
+  });
+
+  generateAssignedSequence();
   buildRoster();
   buildLedger();
   renderStage();
